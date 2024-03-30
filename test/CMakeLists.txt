@@ -16,12 +16,15 @@ include(FetchContent)
 include(FetchContent)
 FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt
-    GIT_TAG 10.0.0)
+    GIT_PROGRESS TRUE
+    GIT_TAG 10.0.0
+)
 
 FetchContent_Declare(
     boost
     URL https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.tar.xz
     DOWNLOAD_EXTRACT_TIMESTAMP ON
+    GIT_PROGRESS TRUE
 )
 include(../src/ModernExternalProject.cmake)
 
@@ -30,19 +33,23 @@ FetchContent_Enable(fmt boost)
 ModernExternalProject_Add(fmt
     SOURCE_DIR ${fmt_SOURCE_DIR}
 )
+
+message("cmake pp: ${CMAKE_PREFIX_PATH} ${fmt_INSTALLED}") 
 ModernExternalProject_Add(boost
     SOURCE_DIR ${boost_SOURCE_DIR}
     CMAKE_CACHE BUILD_LIST=core,highgui,imgcodecs
     VERBOSE configure
 )
 
-message("cmake pp: ${CMAKE_PREFIX_PATH}")
+message("cmake pp: ${CMAKE_PREFIX_PATH} ${boost_INSTALLED}")
 find_package(fmt REQUIRED)
-
-aux_source_directory(. SRCS)
 
 add_executable(test_fmt test_fmt.cpp)
 target_link_libraries(test_fmt PRIVATE fmt::fmt)
+
+find_package(Boost REQUIRED COMPONENTS asio bind url beast)
+add_executable(test_boost test_boost.cpp)
+target_link_libraries(test_boost PRIVATE Boost::bind Boost::asio Boost::url Boost::beast fmt::fmt)
 
 # FetchContent_Declare(
 # Boost

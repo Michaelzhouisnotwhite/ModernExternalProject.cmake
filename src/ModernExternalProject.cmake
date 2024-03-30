@@ -28,10 +28,13 @@ endfunction()
 function(FetchContent_Enable)
     foreach(__cmake_content_name IN ITEMS ${ARGV})
         FetchContent_GetProperties(${__cmake_content_name})
+        set(${__cmake_content_name}_NEED_ADD FALSE PARENT_SCOPE)
 
+        # message(FATAL_ERROR "${${__cmake_content_name}_POPULATED}")
         if(NOT ${__cmake_content_name}_POPULATED)
             FetchContent_Populate(${__cmake_content_name})
             set(${__cmake_content_name}_SOURCE_DIR ${${__cmake_content_name}_SOURCE_DIR} PARENT_SCOPE)
+            set(${__cmake_content_name}_NEED_ADD TRUE PARENT_SCOPE)
         endif()
 
         message("${__cmake_content_name}_SOURCE_DIR ${${__cmake_content_name}_SOURCE_DIR}")
@@ -86,42 +89,70 @@ function(ModernExternalProject_Add contentName)
     list(APPEND cmd "-DCMAKE_BUILD_TYPE=${ARG_BUILD_TYPE}")
     list(APPEND cmd "-DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}")
     list(APPEND cmd "-DCMAKE_PREFIX_PATH:PATH=${CMAKE_PREFIX_PATH}")
-    list(APPEND cmd "-G${ARG_GENERATOR}")
 
-    foreach(arg ${CMAKE_CACHE})
+    foreach(arg ${ARG_CMAKE_CACHE})
         list(APPEND cmd "-D${arg}")
     endforeach()
 
-    # if(configure IN_LIST ARG_VERBOSE)
-    # execute_process(
-    # COMMAND ${cmd}
-    # OUTPUT_VARIABLE output
-    # WORKING_DIRECTORY ${ARG_SOURCE_DIR}
-    # RESULT_VARIABLE result
-    # )
-    # else()
-    execute_process(
-        COMMAND ${cmd}
-        # OUTPUT_VARIABLE output
-        # ECHO_OUTPUT_VARIABLE
-        WORKING_DIRECTORY ${ARG_SOURCE_DIR}
-        RESULT_VARIABLE result
-    )
+    list(APPEND cmd "-G${ARG_GENERATOR}")
 
-    # endif()
+    set(config_cmd ${cmd})
+    set(build_cmd ${CMAKE_COMMAND} --build ${${contentName}_BINARY_DIR} -j${cores})
+    set(install_cmd ${CMAKE_COMMAND} --install ${${contentName}_BINARY_DIR})
+
+    if(${contentName}_INSTALLED)
+        set(cmd ${CMAKE_COMMAND} --build ${contentName}_BINARY_DIR -t clean)
+        add_custom_target(${contentName}_clean
+            COMMAND ${cmd}
+        )
+
+        add_custom_target(${contentName}_configure
+            COMMAND ${config_cmd}
+        )
+        add_custom_target(${contentName}_install
+            COMMAND ${install_cmd}
+        )
+
+        add_custom_target(${contentName}_build
+            COMMAND ${cmd}
+        )
+
+        list(APPEND _PREFIX_PATH "${ARG_INSTALL_DIR}")
+        set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${_PREFIX_PATH}" PARENT_SCOPE)
+        return()
+    endif()
+
+    if(configure IN_LIST ARG_VERBOSE)
+        execute_process(
+            COMMAND ${config_cmd}
+
+            # OUTPUT_VARIABLE output
+            # ECHO_OUTPUT_VARIABLE
+            WORKING_DIRECTORY ${ARG_SOURCE_DIR}
+            RESULT_VARIABLE result
+        )
+    else()
+        execute_process(
+            COMMAND ${config_cmd}
+            OUTPUT_VARIABLE output
+            WORKING_DIRECTORY ${ARG_SOURCE_DIR}
+            RESULT_VARIABLE result
+        )
+    endif()
+
     if(result)
         message(FATAL_ERROR "configure ${contentName} failed")
         message(${output})
     endif()
 
-    execute_process(COMMAND ${CMAKE_COMMAND} --build ${${contentName}_BINARY_DIR} -j${cores} RESULT_VARIABLE result)
+    execute_process(COMMAND ${build_cmd} RESULT_VARIABLE result)
 
     if(result)
         message(FATAL_ERROR "build ${contentName} failed")
         message(${output})
     endif()
 
-    execute_process(COMMAND ${CMAKE_COMMAND} --install ${${contentName}_BINARY_DIR} RESULT_VARIABLE result)
+    execute_process(COMMAND ${install_cmd} RESULT_VARIABLE result)
 
     if(result)
         message(FATAL_ERROR "install ${contentName} failed")
@@ -129,6 +160,7 @@ function(ModernExternalProject_Add contentName)
     endif()
 
     message(STATUS "Setting up ${contentName} completed")
+    set(${contentName}_INSTALLED TRUE CACHE BOOL "" FORCE)
 
     list(APPEND _PREFIX_PATH "${ARG_INSTALL_DIR}")
     set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${_PREFIX_PATH}" PARENT_SCOPE)
