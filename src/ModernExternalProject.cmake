@@ -101,7 +101,7 @@ function(ModernExternalProject_Add contentName)
     set(install_cmd ${CMAKE_COMMAND} --install ${${contentName}_BINARY_DIR})
 
     if(${contentName}_INSTALLED)
-        set(cmd ${CMAKE_COMMAND} --build ${contentName}_BINARY_DIR -t clean)
+        set(cmd ${CMAKE_COMMAND} --build ${${contentName}_BINARY_DIR} -t clean)
         add_custom_target(${contentName}_clean
             COMMAND ${cmd}
         )
