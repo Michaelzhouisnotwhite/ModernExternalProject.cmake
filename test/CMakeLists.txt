@@ -25,6 +25,7 @@ FetchContent_Declare(
     URL https://github.com/boostorg/boost/releases/download/boost-1.82.0/boost-1.82.0.tar.xz
     DOWNLOAD_EXTRACT_TIMESTAMP ON
     GIT_PROGRESS TRUE
+    FETCHCONTENT_UPDATES_DISCONNECTED
 )
 include(../src/ModernExternalProject.cmake)
 
@@ -37,7 +38,7 @@ ModernExternalProject_Add(fmt
 message("cmake pp: ${CMAKE_PREFIX_PATH} ${fmt_INSTALLED}") 
 ModernExternalProject_Add(boost
     SOURCE_DIR ${boost_SOURCE_DIR}
-    CMAKE_CACHE BUILD_LIST=core,highgui,imgcodecs
+    CMAKE_CACHE BOOST_ENABLE_PYTHON=OFF 
     VERBOSE configure
 )
 
