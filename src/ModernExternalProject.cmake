@@ -100,10 +100,11 @@ function(ModernExternalProject_Add contentName)
     set(build_cmd ${CMAKE_COMMAND} --build ${${contentName}_BINARY_DIR} -j${cores})
     set(install_cmd ${CMAKE_COMMAND} --install ${${contentName}_BINARY_DIR})
 
-    if(${contentName}_INSTALLED)
-        set(cmd ${CMAKE_COMMAND} --build ${${contentName}_BINARY_DIR} -t clean)
+    set(clean_cmd ${CMAKE_COMMAND} --build ${${contentName}_BINARY_DIR} -t clean)
+
+    macro(add_target)
         add_custom_target(${contentName}_clean
-            COMMAND ${cmd}
+            COMMAND ${clean_cmd}
         )
 
         add_custom_target(${contentName}_configure
@@ -120,48 +121,55 @@ function(ModernExternalProject_Add contentName)
         list(APPEND _PREFIX_PATH "${ARG_INSTALL_DIR}")
         set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${_PREFIX_PATH}" PARENT_SCOPE)
         return()
+    endmacro(add_target)
+
+    macro(setup)
+        if(configure IN_LIST ARG_VERBOSE)
+            execute_process(
+                COMMAND ${config_cmd}
+
+                # OUTPUT_VARIABLE output
+                # ECHO_OUTPUT_VARIABLE
+                WORKING_DIRECTORY ${ARG_SOURCE_DIR}
+                RESULT_VARIABLE result
+            )
+        else()
+            execute_process(
+                COMMAND ${config_cmd}
+                OUTPUT_VARIABLE output
+                WORKING_DIRECTORY ${ARG_SOURCE_DIR}
+                RESULT_VARIABLE result
+            )
+        endif()
+
+        if(result)
+            message(FATAL_ERROR "configure ${contentName} failed")
+            message(${output})
+        endif()
+
+        execute_process(COMMAND ${build_cmd} RESULT_VARIABLE result)
+
+        if(result)
+            message(FATAL_ERROR "build ${contentName} failed")
+            message(${output})
+        endif()
+
+        execute_process(COMMAND ${install_cmd} RESULT_VARIABLE result)
+
+        if(result)
+            message(FATAL_ERROR "install ${contentName} failed")
+            message(${output})
+        endif()
+
+        message(STATUS "Setting up ${contentName} completed")
+        set(${contentName}_INSTALLED TRUE CACHE BOOL "" FORCE)
+        list(APPEND _PREFIX_PATH "${ARG_INSTALL_DIR}")
+        set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${_PREFIX_PATH}" PARENT_SCOPE)
+    endmacro()
+
+    add_target()
+
+    if(NOT ${contentName}_INSTALLED)
+        setup()
     endif()
-
-    if(configure IN_LIST ARG_VERBOSE)
-        execute_process(
-            COMMAND ${config_cmd}
-
-            # OUTPUT_VARIABLE output
-            # ECHO_OUTPUT_VARIABLE
-            WORKING_DIRECTORY ${ARG_SOURCE_DIR}
-            RESULT_VARIABLE result
-        )
-    else()
-        execute_process(
-            COMMAND ${config_cmd}
-            OUTPUT_VARIABLE output
-            WORKING_DIRECTORY ${ARG_SOURCE_DIR}
-            RESULT_VARIABLE result
-        )
-    endif()
-
-    if(result)
-        message(FATAL_ERROR "configure ${contentName} failed")
-        message(${output})
-    endif()
-
-    execute_process(COMMAND ${build_cmd} RESULT_VARIABLE result)
-
-    if(result)
-        message(FATAL_ERROR "build ${contentName} failed")
-        message(${output})
-    endif()
-
-    execute_process(COMMAND ${install_cmd} RESULT_VARIABLE result)
-
-    if(result)
-        message(FATAL_ERROR "install ${contentName} failed")
-        message(${output})
-    endif()
-
-    message(STATUS "Setting up ${contentName} completed")
-    set(${contentName}_INSTALLED TRUE CACHE BOOL "" FORCE)
-
-    list(APPEND _PREFIX_PATH "${ARG_INSTALL_DIR}")
-    set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${_PREFIX_PATH}" PARENT_SCOPE)
 endfunction()
