@@ -114,7 +114,7 @@ function(ModernExternalProject_Add contentName)
         )
 
         add_custom_target(${contentName}_build
-            COMMAND ${cmd}
+            COMMAND ${build_cmd}
         )
 
         list(APPEND _PREFIX_PATH "${ARG_INSTALL_DIR}")
