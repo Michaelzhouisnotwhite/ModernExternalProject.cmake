@@ -123,7 +123,8 @@ function(ModernExternalProject_Add contentName)
         return()
     endmacro(add_target)
 
-    macro(setup)
+    # function(setup_proj)
+    if(${contentName}_INSTALLED STREQUAL "OFF" OR NOT ${contentName}_INSTALLED)
         if(configure IN_LIST ARG_VERBOSE)
             execute_process(
                 COMMAND ${config_cmd}
@@ -169,11 +170,12 @@ function(ModernExternalProject_Add contentName)
         set(${contentName}_INSTALLED TRUE CACHE BOOL "" FORCE)
         list(APPEND _PREFIX_PATH "${ARG_INSTALL_DIR}")
         set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${_PREFIX_PATH}" PARENT_SCOPE)
-    endmacro()
+    endif()
 
+    # endfunction(setup_proj)
     add_target()
 
-    if(NOT ${contentName}_INSTALLED)
-        setup()
-    endif()
-endfunction()
+    # setup_proj()
+
+    # endif()
+endfunction(ModernExternalProject_Add)
