@@ -104,18 +104,18 @@ function(ModernExternalProject_Add contentName)
 
     macro(add_target)
         add_custom_target(${contentName}_clean
-            COMMAND ${clean_cmd}
+            COMMAND ${clean_cmd} USES_TERMINAL
         )
 
         add_custom_target(${contentName}_configure
-            COMMAND ${config_cmd}
+            COMMAND ${config_cmd} USES_TERMINAL
         )
         add_custom_target(${contentName}_install
-            COMMAND ${install_cmd}
+            COMMAND ${install_cmd} DEPENDS ${contentName}_build USES_TERMINAL
         )
 
         add_custom_target(${contentName}_build
-            COMMAND ${build_cmd}
+            COMMAND ${build_cmd} DEPENDS ${contentName}_configure USES_TERMINAL
         )
 
         list(APPEND _PREFIX_PATH "${ARG_INSTALL_DIR}")
@@ -147,7 +147,11 @@ function(ModernExternalProject_Add contentName)
             message(${output})
         endif()
 
-        execute_process(COMMAND ${build_cmd} RESULT_VARIABLE result)
+        if(build IN_LIST ARG_VERBOSE)
+            execute_process(COMMAND ${build_cmd} RESULT_VARIABLE result)
+        else()
+            execute_process(COMMAND ${build_cmd} RESULT_VARIABLE result)
+        endif()
 
         if(result)
             message(FATAL_ERROR "build ${contentName} failed")
